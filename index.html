@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CodeCrafters | AI Unit Test Generator</title>
+<style>
+:root{--bg:#0b1020;--panel:#121a2e;--panel2:#18233b;--text:#eef3ff;--muted:#a8b4ce;--accent:#8b9cff;--line:#2b3857;--green:#42d6a4}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 10% 0%,#1a2850 0,transparent 35%),var(--bg);color:var(--text);font:15px Inter,system-ui,Arial}
+header{padding:28px max(5vw,20px);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:20px}
+.brand{font-weight:800;font-size:20px;letter-spacing:.3px}.brand span{color:var(--accent)}.tag{color:var(--muted);font-size:13px}
+main{max-width:1200px;margin:30px auto;padding:0 20px}.hero{margin-bottom:24px}.hero h1{font-size:clamp(27px,4vw,42px);margin:0 0 8px}.hero p{color:var(--muted);margin:0;max-width:760px;line-height:1.6}
+.layout{display:grid;grid-template-columns:1.05fr .95fr;gap:18px}.card{background:linear-gradient(160deg,var(--panel),#10172a);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 12px 35px #0003}
+h2{font-size:18px;margin:0 0 16px}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}label{display:block;color:var(--muted);font-size:13px;margin:12px 0 7px}
+select,textarea,input{width:100%;border:1px solid var(--line);background:#0b1223;color:var(--text);border-radius:9px;padding:11px;font:inherit}
+textarea{min-height:270px;resize:vertical;font:13px ui-monospace,monospace;line-height:1.5}
+button{border:0;border-radius:9px;padding:11px 15px;font-weight:700;cursor:pointer;background:var(--accent);color:#10152b}
+button.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}button:disabled{opacity:.5;cursor:wait}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.hint{font-size:12px;color:var(--muted);line-height:1.5;margin-top:10px}
+.pill{display:inline-block;border:1px solid var(--line);border-radius:30px;padding:5px 9px;color:var(--muted);font-size:11px;margin:0 5px 5px 0}
+#status{margin-top:12px;color:var(--green);font-size:13px}.tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
+.tab{background:var(--panel2);color:var(--muted);border:1px solid var(--line);padding:7px 10px;font-size:12px}.tab.active{background:#303d69;color:white;border-color:var(--accent)}
+pre{white-space:pre-wrap;overflow:auto;background:#080e1b;border:1px solid var(--line);padding:14px;border-radius:10px;color:#d8e2ff;font:12px ui-monospace,monospace;max-height:390px}
+table{border-collapse:collapse;width:100%;font-size:12px}th,td{border-bottom:1px solid var(--line);padding:9px;text-align:left;vertical-align:top}th{color:var(--muted)}
+.notice{background:#2a2415;border:1px solid #6a5425;color:#f5d99a;padding:11px;border-radius:9px;font-size:12px;line-height:1.5;margin-top:12px}
+footer{text-align:center;color:var(--muted);padding:30px;font-size:12px}
+@media(max-width:850px){.layout{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:column}.row{grid-template-columns:1fr}}
+</style></head>
+<body>
+<header><div class="brand">CODE<span>CRAFTERS</span></div><div class="tag">SCSE4041 · Prompt Engineering Mini Project · Milestone 2</div></header>
+<main>
+<section class="hero"><h1>AI-Powered Unit Test Generator</h1><p>Turn source code into a structured unit-test plan. Choose a prompt version, inspect generated test cases, and validate Python tests locally. Connect a Gemini API key on the server for real LLM generation.</p></section>
+<div class="layout">
+<section class="card">
+<h2>01 · Configure your analysis</h2>
+<div class="row"><div><label for="language">Programming language</label><select id="language"><option>Python</option><option>Java</option><option>JavaScript</option><option>C++</option></select></div>
+<div><label for="framework">Testing framework</label><select id="framework"><option value="pytest">Pytest</option><option value="JUnit">JUnit</option><option value="Jest">Jest</option><option value="Google Test">Google Test</option></select></div></div>
+<div class="row"><div><label for="version">Prompt version</label><select id="version"><option value="v1">V1 · Baseline</option><option value="v2">V2 · Context-aware</option><option value="v3" selected>V3 · Validation-focused</option></select></div>
+<div><label for="mode">Generation mode</label><select id="mode"><option value="demo">Demo mode (no API key)</option><option value="gemini">Gemini AI mode (API key required)</option></select></div></div>
+<label for="code">Paste source code</label><textarea id="code" spellcheck="false">def divide(a, b):
+    """Divide a by b."""
+    if b == 0:
+        raise ValueError("Cannot divide by zero")
+    return a / b
+
+def is_even(number):
+    return number % 2 == 0
+</textarea>
+<div class="actions"><button id="generate">Generate unit tests</button><button class="secondary" id="sample">Load sample</button><button class="secondary" id="clear">Clear</button></div>
+<div class="hint">Demo mode performs lightweight function detection and creates a test plan template. Gemini mode sends source code to the configured Gemini model.</div><div id="status" role="status"></div>
+</section>
+<section class="card">
+<h2>02 · Generated results</h2>
+<div><span class="pill" id="modeBadge">Waiting for input</span><span class="pill" id="modelBadge">No model selected</span></div>
+<div class="tabs"><button class="tab active" data-tab="overview">Overview</button><button class="tab" data-tab="cases">Test matrix</button><button class="tab" data-tab="code">Test code</button><button class="tab" data-tab="prompts">Prompt design</button></div>
+<div id="overview"><p class="hint">Your analysis summary and detected functions will appear here.</p><div id="summary"></div><div id="functions"></div><div id="limits"></div></div>
+<div id="cases" hidden><div id="caseTable" class="hint">No test cases yet.</div></div>
+<div id="code" hidden><pre id="testCode">Generated test code will appear here.</pre><button class="secondary" id="copyCode">Copy test code</button></div>
+<div id="prompts" hidden><p class="hint">Three prompt iterations are included to demonstrate intentional prompt refinement. Record your own actual experiments and observations in the project iteration log.</p><div id="promptText"></div></div>
+<div class="notice">Important: Demo output is heuristic and is not evidence of AI-generated or verified tests. Review generated assertions, run tests, and record genuine results before submission.</div>
+</section>
+</div>
+<section class="card" style="margin-top:18px">
+<h2>03 · Python test validation (optional)</h2>
+<p class="hint">Paste Python source and a pytest test file. The prototype runs it in a short-lived local subprocess with basic risky-operation checks. This is an educational convenience, not a secure sandbox; only run code you trust.</p>
+<div class="row"><div><label for="validateSource">Python source</label><textarea id="validateSource" style="min-height:150px">def add(a, b):
+    return a + b</textarea></div><div><label for="validateTests">Pytest code (import your module as user_module)</label><textarea id="validateTests" style="min-height:150px">def test_add():
+    assert user_module.add(2, 3) == 5</textarea></div></div>
+<div class="actions"><button id="validate">Run Python tests</button></div><pre id="validationOutput">Validation results will appear here.</pre>
+</section>
+</main><footer>CodeCrafters · AI-Powered Unit Test Generator · Prototype v1.0</footer>
+<script>
+const prompts = {
+v1:"You are an AI unit test generator. Analyze the supplied source code and create executable unit tests in the requested framework. Cover normal, boundary, and invalid inputs. Do not invent behavior. Return JSON with summary, functions, test_code, cases.",
+v2:"Act as a senior software test engineer. Inspect actual source code, identify callable functions, parameters, return values, branches, exceptions, and dependencies. Generate tests only for behavior supported by code. Include normal, boundary, negative, empty, and invalid cases. Return structured JSON and flag assumptions.",
+v3:"You are an expert QA engineer. Generate reliable unit tests in the specified language/framework. Never fabricate functions or requirements; derive expected values by tracing implementation; cover normal paths, boundaries, invalid types/values, empty inputs, and exceptions; use descriptive names; avoid side effects. Return valid JSON with summary, functions, test_code, cases, limitations."
+};
+let latestCode="";
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
+ document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));
+ ["overview","cases","code","prompts"].forEach(id=>document.getElementById(id).hidden=id!==b.dataset.tab);
+}));
+document.getElementById("generate").onclick=async()=>{
+ const btn=document.getElementById("generate"), status=document.getElementById("status");
+ btn.disabled=true;status.textContent="Analyzing source code…";
+ try{
+  const r=await fetch("/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+   code:document.getElementById("code").value,language:document.getElementById("language").value,
+   framework:document.getElementById("framework").value,version:document.getElementById("version").value,
+   mode:document.getElementById("mode").value})});
+  const d=await r.json();if(!r.ok)throw new Error(d.error||"Generation failed");
+  latestCode=d.test_code||"";
+  document.getElementById("modeBadge").textContent=d.mode||"Generated";
+  document.getElementById("modelBadge").textContent=d.model||"Model unavailable";
+  document.getElementById("summary").innerHTML="<p>"+esc(d.summary||"No summary")+"</p>";
+  document.getElementById("functions").innerHTML="<b>Detected functions</b><p>"+(d.functions||[]).map(esc).join(", ")+"</p>";
+  document.getElementById("limits").innerHTML=(d.limitations||[]).map(x=>"<p class='hint'>• "+esc(x)+"</p>").join("");
+  document.getElementById("testCode").textContent=latestCode;
+  const cases=d.cases||[];
+  document.getElementById("caseTable").innerHTML=cases.length?"<table><thead><tr><th>Test</th><th>Category</th><th>Input</th><th>Expected</th><th>Rationale</th></tr></thead><tbody>"+cases.map(c=>"<tr><td>"+esc(c.name)+"</td><td>"+esc(c.category)+"</td><td>"+esc(c.input)+"</td><td>"+esc(c.expected)+"</td><td>"+esc(c.rationale)+"</td></tr>").join("")+"</tbody></table>":"No cases returned.";
+  document.getElementById("promptText").innerHTML=["v1","v2","v3"].map(v=>"<p><b>"+v.toUpperCase()+"</b></p><pre>"+esc(prompts[v])+"</pre>").join("");
+  status.textContent="Generation completed. Review all outputs before use.";
+ }catch(e){status.textContent="Error: "+e.message;}
+ finally{btn.disabled=false;}
+};
+function esc(x){return String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+document.getElementById("sample").onclick=()=>{document.getElementById("code").value="def divide(a, b):\\n    if b == 0:\\n        raise ValueError('Cannot divide by zero')\\n    return a / b\\n\\ndef is_even(number):\\n    return number % 2 == 0";};
+document.getElementById("clear").onclick=()=>{document.getElementById("code").value="";document.getElementById("status").textContent="Input cleared.";};
+document.getElementById("copyCode").onclick=async()=>{await navigator.clipboard.writeText(latestCode);document.getElementById("status").textContent="Test code copied.";};
+document.getElementById("validate").onclick=async()=>{
+ const out=document.getElementById("validationOutput");out.textContent="Running tests…";
+ try{const r=await fetch("/validate-python",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({source:document.getElementById("validateSource").value,tests:document.getElementById("validateTests").value})});const d=await r.json();out.textContent=d.error||((d.passed?"PASS":"FAIL")+" (exit code "+d.returncode+")\\n"+d.output);}
+ catch(e){out.textContent="Validation error: "+e.message;}
+};
+</script></body></html>
