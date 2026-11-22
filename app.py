@@ -61,7 +61,7 @@ def demo_generate(code, language, framework):
 
 @app.get("/")
 def home():
-    return render_template("index.html", prompts=SYSTEM_PROMPTS)
+    return render_template("index.html", prompts=SYSTEM_PROMPTS, is_hosted=bool(os.getenv("RENDER")))
 
 @app.post("/generate")
 def generate():
@@ -100,6 +100,8 @@ def generate():
 
 @app.post("/validate-python")
 def validate_python():
+    if os.getenv("RENDER"):
+        return jsonify({"error": "Public test execution is disabled on the hosted demo for security."}), 403
     data = request.get_json(force=True)
     source = data.get("source", "")
     tests = data.get("tests", "")
@@ -128,4 +130,4 @@ def validate_python():
             return jsonify({"error":str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=False)
